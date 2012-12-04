@@ -12,6 +12,8 @@ module DbCharmer
         # Main connection management
         setup_connection_magic(opt[:connection], should_exist)
 
+        self.db_charmer_failover_seconds = opt[:failover]
+
         # Set up slaves pool
         opt[:slaves] ||= []
         opt[:slaves] = [ opt[:slaves] ].flatten

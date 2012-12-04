@@ -38,6 +38,13 @@ module DbCharmer
             old_proxy = db_charmer_connection_proxy
             switch_connection_to(con, DbCharmer.connections_should_exist?)
             yield(proxy_target)
+          rescue Exception => e
+            if self.db_charmer_failover_seconds && e.message =~ /Table .* doesn't exist/
+              self.db_charmer_slaves_failing = con
+              return on_slave(nil, proxy_target) { yield }
+            else
+              raise e
+            end
           ensure
             switch_connection_to(old_proxy)
             self.db_charmer_connection_level -= 1

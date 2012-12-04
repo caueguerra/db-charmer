@@ -31,18 +31,45 @@ module DbCharmer
       end
 
       #-----------------------------------------------------------------------------
+      @@db_charmer_failover_seconds = nil
+      def db_charmer_failover_seconds=(seconds)
+        @@db_charmer_failover_seconds = seconds
+      end
+
+      def db_charmer_failover_seconds
+        @@db_charmer_failover_seconds
+      end
+
+      #-----------------------------------------------------------------------------
+      @@db_charmer_slaves_failing = {}
+      def db_charmer_slaves_failing=(slave)
+        @@db_charmer_slaves_failing[slave] = Time.now
+      end
+
+      def db_charmer_slaves_failing
+        @@db_charmer_slaves_failing
+      end
+
+      #-----------------------------------------------------------------------------
       @@db_charmer_slaves = {}
       def db_charmer_slaves=(slaves)
         @@db_charmer_slaves[self.name] = slaves
       end
 
       def db_charmer_slaves
-        @@db_charmer_slaves[self.name] || []
+        db_charmer_slaves_failing.each_pair do |slave, time|
+          if time < db_charmer_failover_seconds.seconds.ago
+            @@db_charmer_slaves_failing.delete(slave)
+          end
+        end
+
+        (@@db_charmer_slaves[self.name] || []) - db_charmer_slaves_failing.keys
       end
 
       def db_charmer_random_slave
         return nil unless db_charmer_slaves.any?
-        db_charmer_slaves[rand(db_charmer_slaves.size)]
+        slaves = db_charmer_slaves
+        slaves[rand(slaves.size)]
       end
 
       #-----------------------------------------------------------------------------
